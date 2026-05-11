@@ -1,0 +1,50 @@
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.venv/
+.env
+env.bak/
+*.sqlite3
+*.log
+node_modules/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# VS Code workspace settings
+/.vscode/
+
+# Environment variables
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
