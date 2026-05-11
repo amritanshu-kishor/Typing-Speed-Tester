@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typing Speed Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="page">
+        <header class="header">
+            <div>
+                <h1>Typing Speed Test</h1>
+                <p class="subtitle">Type the paragraph below as quickly and accurately as you can.</p>
+            </div>
+            <a class="btn btn-secondary" href="/">New paragraph</a>
+        </header>
+
+        <main class="card">
+            <form action="/submit_test" method="POST">
+                <div class="sentence-display" aria-live="polite">
+                    <p id="sentence">{{ sentence }}</p>
+                    <input type="hidden" name="sentence" value="{{ sentence }}">
+                    <input type="hidden" name="start_time" id="start-time">
+                </div>
+
+                <div class="row">
+                    <div id="countdown" class="pill">Starting in {{ timer_duration }}...</div>
+                    <div class="hint">Tip: focus on accuracy first, speed comes later.</div>
+                </div>
+
+                <label class="label" for="user-input">Your typing</label>
+                <textarea name="user_input" id="user-input" placeholder="Start typing here..." disabled required></textarea>
+
+                <div class="actions">
+                    <button type="submit" id="submit-btn" class="btn btn-primary">Submit</button>
+                    <a class="btn btn-ghost" href="/">Reset</a>
+                </div>
+            </form>
+
+            {% if elapsed_time is defined %}
+            <section id="results" class="results" aria-live="polite">
+                <h2>Results</h2>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">Time</div>
+                        <div class="stat-value">{{ elapsed_time }}s</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">WPM</div>
+                        <div class="stat-value">{{ wpm }}</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Accuracy</div>
+                        <div class="stat-value">{{ accuracy }}%</div>
+                    </div>
+                </div>
+            </section>
+            {% endif %}
+        </main>
+
+        <footer class="footer">
+            <span>Made with Flask</span>
+        </footer>
+    </div>
+
+    <script>
+        let countdown = {{ timer_duration }};
+        const countdownEl = document.getElementById('countdown');
+        const textarea = document.getElementById('user-input');
+        const startTimeInput = document.getElementById('start-time');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function setLocked(locked) {
+            textarea.disabled = locked;
+            submitBtn.disabled = locked;
+        }
+
+        setLocked(true);
+
+        const timer = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+                countdownEl.textContent = `Starting in ${countdown}...`;
+                return;
+            }
+
+            clearInterval(timer);
+            countdownEl.textContent = "Go!";
+            countdownEl.classList.add("go");
+            setLocked(false);
+            textarea.focus();
+            startTimeInput.value = Date.now() / 1000;
+        }, 1000);
+    </script>
+</body>
+</html>
+
