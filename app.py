@@ -21,22 +21,32 @@ def _normalize_paragraph(text: str) -> str:
     return text
 
 
+def _mostly_ascii_english(text: str) -> bool:
+    if not text:
+        return False
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return False
+    ascii_letters = sum(1 for c in letters if "a" <= c.lower() <= "z")
+    return (ascii_letters / len(letters)) >= 0.95
+
+
 def get_online_paragraph(min_words: int = 35, timeout_s: float = 3.5) -> str | None:
     """
-    Fetches a paragraph from Bacon Ipsum (no API key needed).
+    Fetches a paragraph from Quotable (English quotes, no API key needed).
     Returns None on failure.
     """
     try:
-        params = urllib.parse.urlencode(
-            {"type": "meat-and-filler", "paras": 1, "format": "json"}
-        )
-        url = f"https://baconipsum.com/api/?{params}"
+        params = urllib.parse.urlencode({"minLength": 200, "maxLength": 320})
+        url = f"https://api.quotable.io/random?{params}"
         with urllib.request.urlopen(url, timeout=timeout_s) as resp:
             data = json.loads(resp.read().decode("utf-8", errors="replace"))
-        if not isinstance(data, list) or not data:
+        if not isinstance(data, dict) or "content" not in data:
             return None
-        paragraph = _normalize_paragraph(data[0])
+        paragraph = _normalize_paragraph(data.get("content"))
         if len(paragraph.split()) < min_words:
+            return None
+        if not _mostly_ascii_english(paragraph):
             return None
         return paragraph
     except Exception:

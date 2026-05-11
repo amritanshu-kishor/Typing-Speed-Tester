@@ -48,12 +48,20 @@
                     </div>
                     <div class="stat">
                         <div class="stat-label">WPM</div>
-                        <div class="stat-value">{{ wpm }}</div>
+                        <div class="stat-value" id="wpm-value" data-wpm="{{ wpm }}">{{ wpm }}</div>
                     </div>
                     <div class="stat">
                         <div class="stat-label">Accuracy</div>
                         <div class="stat-value">{{ accuracy }}%</div>
                     </div>
+                </div>
+
+                <div class="chart-wrap" aria-label="WPM comparison chart">
+                    <div class="chart-head">
+                        <h3>WPM comparison</h3>
+                        <div class="chart-sub" id="chart-sub">Comparing this attempt with your last attempt.</div>
+                    </div>
+                    <canvas id="wpm-chart" width="720" height="220"></canvas>
                 </div>
             </section>
             {% endif %}
@@ -70,6 +78,7 @@
         const textarea = document.getElementById('user-input');
         const startTimeInput = document.getElementById('start-time');
         const submitBtn = document.getElementById('submit-btn');
+        const wpmEl = document.getElementById('wpm-value');
 
         function setLocked(locked) {
             textarea.disabled = locked;
@@ -92,6 +101,110 @@
             textarea.focus();
             startTimeInput.value = Date.now() / 1000;
         }, 1000);
+
+        function safeParseNumber(value) {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : null;
+        }
+
+        function drawWpmChart(canvas, currentWpm, lastWpm) {
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+
+            const dpr = window.devicePixelRatio || 1;
+            const cssWidth = canvas.clientWidth || canvas.width;
+            const cssHeight = canvas.clientHeight || canvas.height;
+            canvas.width = Math.floor(cssWidth * dpr);
+            canvas.height = Math.floor(cssHeight * dpr);
+            ctx.scale(dpr, dpr);
+
+            const w = cssWidth;
+            const h = cssHeight;
+            ctx.clearRect(0, 0, w, h);
+
+            const pad = 18;
+            const chartX = pad;
+            const chartY = pad;
+            const chartW = w - pad * 2;
+            const chartH = h - pad * 2;
+
+            const values = [currentWpm, lastWpm].filter((v) => v != null);
+            const maxV = Math.max(10, ...values);
+
+            // grid
+            ctx.strokeStyle = "rgba(15, 23, 42, 0.10)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = chartY + (chartH * i) / 4;
+                ctx.beginPath();
+                ctx.moveTo(chartX, y);
+                ctx.lineTo(chartX + chartW, y);
+                ctx.stroke();
+            }
+
+            const barGap = 18;
+            const barW = (chartW - barGap) / 2;
+            const baseY = chartY + chartH;
+
+            function drawBar(idx, label, value, fill) {
+                const x = chartX + idx * (barW + barGap);
+                const barH = Math.max(0, (value / maxV) * (chartH - 34));
+                const y = baseY - barH - 18;
+
+                // bar
+                ctx.fillStyle = fill;
+                const r = 10;
+                roundRect(ctx, x, y, barW, barH + 18, r);
+                ctx.fill();
+
+                // value
+                ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+                ctx.font = "600 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(`${Math.round(value)} wpm`, x + barW / 2, y + 14);
+
+                // label
+                ctx.fillStyle = "rgba(15, 23, 42, 0.64)";
+                ctx.font = "600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+                ctx.fillText(label, x + barW / 2, baseY + 12);
+            }
+
+            function roundRect(ctx, x, y, w, h, r) {
+                const rr = Math.min(r, w / 2, h / 2);
+                ctx.beginPath();
+                ctx.moveTo(x + rr, y);
+                ctx.arcTo(x + w, y, x + w, y + h, rr);
+                ctx.arcTo(x + w, y + h, x, y + h, rr);
+                ctx.arcTo(x, y + h, x, y, rr);
+                ctx.arcTo(x, y, x + w, y, rr);
+                ctx.closePath();
+            }
+
+            if (currentWpm != null) drawBar(0, "This attempt", currentWpm, "rgba(59, 130, 246, 0.22)");
+            if (lastWpm != null) drawBar(1, "Last attempt", lastWpm, "rgba(16, 185, 129, 0.22)");
+        }
+
+        // Results chart + persistence for "last attempt"
+        if (wpmEl) {
+            const currentWpm = safeParseNumber(wpmEl.dataset.wpm);
+            const lastWpm = safeParseNumber(localStorage.getItem("tst:last_wpm"));
+            const canvas = document.getElementById("wpm-chart");
+            const sub = document.getElementById("chart-sub");
+
+            if (sub) {
+                if (lastWpm == null) sub.textContent = "No previous attempt yet — finish one more test to compare.";
+            }
+
+            if (canvas && currentWpm != null) {
+                drawWpmChart(canvas, currentWpm, lastWpm);
+                const ro = new ResizeObserver(() => drawWpmChart(canvas, currentWpm, lastWpm));
+                ro.observe(canvas);
+            }
+
+            if (currentWpm != null) {
+                localStorage.setItem("tst:last_wpm", String(currentWpm));
+            }
+        }
     </script>
 </body>
 </html>
